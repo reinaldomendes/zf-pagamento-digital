@@ -1,0 +1,67 @@
+<?php
+$hash_fields = array();
+
+$options['url_retorno'] = $options['url_retorno'] ? :
+        ($this->config["return_to"] ? : null);
+if ($options['url_retorno']) {
+#URL completa para onde seu cliente será direcionado depois da finalização do pedido no Pagamento Digital.
+    $hash_fields = $hash_fields + array(
+        "url_retorno" => $options['url_retorno'],
+        "redirect" => 'true',
+        "redirect_time" => $options['redirect_time'] ? : ( $this->config["redirect_time"])
+    );
+};
+
+
+$options['url_aviso'] = $options['url_aviso'] ? : ( $this->config["url_aviso"]);
+$options['url_aviso'] = $options['url_aviso'] ? : $options['url_retorno'];
+if ($options['url_aviso'])
+    $hash_fields = $hash_fields + array("url_aviso" => $options['url_aviso']);
+
+
+$hash_fields = $hash_fields + array(
+#"encoding" => 'UTF-8',
+    'email_loja' => $options['email'] ? : ( $this->config["email"]),
+    'tipo_integracao' => 'PAD',
+    'id_pedido' => $order->id,
+    'frete' => $order->frete
+);
+
+
+foreach ($order->getProducts() as $i => $product) {
+    $i+=1;
+    $hash_fields = $hash_fields + array(
+        "produto_qtde_{$i}" => $product['qtde'],
+        "produto_codigo_{$i}" => $product['id'],
+        "produto_descricao_{$i}" => $product['descricao'],
+        "produto_valor_{$i}" => $product['preco'],
+    );
+}
+$hash_fields += (array) $order->getExtrasMapped();
+
+
+$to_gen_md5 = $hash_fields;
+ksort($to_gen_md5);
+$to_gen_md5 = join('&', array_map(function($k, $v) {
+                    $v = urlencode($v);
+                    return "{$k}=$v";
+                }, $to_gen_md5));
+
+$hash_fields['hash'] = md5($to_gen_md5);
+?>
+
+<form action="<?php echo $this->gateway_url ?>" method='post' style="display :none">
+    <?php
+    echo join('<br/>', array_map(function($k, $v) {
+                        $v = strtr($v, "'", "\\'");
+                        return "
+                            <label>
+                            <input name='{$k}' value='{$v}' type='text'/>
+                            {$k}
+                            </label>
+                            ";
+                    }, $hash_fields)
+    );
+    ?>
+    <button type="submit">Enviar</button>
+</form>
