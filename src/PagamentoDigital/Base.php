@@ -1,10 +1,9 @@
 <?php
 
 namespace PagamentoDigital;
-
 use \InvalidArgumentException;
-
 class Base {
+    const GATEWAY_URL = "https://www.pagamentodigital.com.br/checkout/pay/";
 
     /**
      *
@@ -12,16 +11,33 @@ class Base {
      */
     protected $_di = null;
     protected static $_factoryInstances = array();
-    protected $_config = array();
-
-    public static function getInstance($alias='default', $options = array()) {
-        $return = self::$_factoryInstances[$alias] =
-                self::$_factoryInstances[$alias] ? : new self($options);
-        return $options ? $return->setOptions($options) : $return;
+    protected  $_config = array();
+    /**
+     *
+     * @param type $alias
+     * @param type $options
+     * @return Base 
+     */
+    public static function getInstance() {
+        #$alias = $alias ?: 'default';        
+        $alias = 'default';
+        return self::$_factoryInstances[$alias] =
+                self::$_factoryInstances[$alias] ? : new static();
+        
     }
 
-    public function __construct($options = array()) {
+    private function __construct($options = array()) {
         $this->setOptions($options);
+    }
+    public function __clone(){
+        throw \Exception('non clone');
+    }
+    
+    public function setConfig($config){        
+        $this->_config = $config;
+    }
+    public function getConfig($key = null ){
+        return null !== $key ? $this->_config[$key] : $this->_config;
     }
 
     public function setOptions(array $options) {
@@ -29,11 +45,7 @@ class Base {
             $this->setDi($options['di']);
         } else {
             $this->_di = $this->_di ?: new Di();
-        }
-        if (!is_array($options['config'])) {
-            throw new InvalidArgumentException('Config não foi informado');
-        }
-        $this->_config = $options['config'];
+        }        
         return $this;
     }
 
@@ -54,7 +66,7 @@ class Base {
         return $this->_di;
     }
 
-    public function factory($name, $params = array()) {
+    public function factory($name, $params = array()){
         return call_user_func_array($this->getDi(), array($name, $params));
     }
 

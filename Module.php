@@ -43,44 +43,49 @@ class Module {
     public function bootstrap($e) {
         $env = $this->_moduleManager->getOptions()->getApplicationEnv();
         $config = $this->_moduleManager->getMergedConfig();
+
         $this->_devConfig = $config->pagamento_digital->{$env};
-        //bootstrap base pagamento_digital class
-        Base::getInstance(null,$this->_devConfig->toArray());
-        
-        $events = StaticEventManager::getInstance();
-        if ($this->_devConfig->developer) {
-            
-            $events->attach('Zend\Mvc\Application', 'route', array($this, 'routeDevelopment'), 1000);
-        }
+        //bootstrap base pagamento_digital class 
+        $di = $e->getParam('application')->getLocator();
+        $di = function($name, $params = array())use($di) {
+                    return $di->get($name, $params);
+                };
+
+        Base::getInstance()->setOptions(array('di' => $di))
+                ->setConfig($this->_devConfig->toArray());
+        $this->_devConfig->toArray();
+//        if ($this->_devConfig->developer) {
+//            $events = StaticEventManager::getInstance();
+//            $events->attach('Zend\Mvc\Application', 'route', array($this, 'routeDevelopment'), 1000);
+//        }
     }
 
     public function routeDevelopment($e) {
-        
         if (!$this->_devConfig->developer) {
             return;
         }
-        
-        $request= $e->getRequest();
+
+        $request = $e->getRequest();
         if (!method_exists($request, 'uri')) {
             return;
         }
-        
+
         $router = $e->getRouter();
         if (method_exists($router, 'getBaseUrl')) {
             $baseUrlLength = strlen($router->getBaseUrl() ? : '');
         } else {
             $baseUrlLength = 0;
-        }        
-        
-        $path = substr($request->uri()->getPath(), $baseUrlLength);        
+        }
+
+        $path = substr($request->uri()->getPath(), $baseUrlLength);
         $path = '/' . trim($path, '/') . '/';
-        $gateway = $this->_devConfig->gateway;
+        $gateway = $this->_devConfig->gateway_url;
         $gateway = '/' . trim($gateway, '/') . '/';
-        
-        Base::getInstance()->factory('PagamentoDigital\Order');
-        if ($path == $gateway) {            
-            $logger = Factory::getInstance()->factory('PagamentoDigital\Developer');                    
-            $logger->gateway();
+
+
+        if ($path == $gateway) {
+            $developer = Base::getInstance()->factory('PagamentoDigital\Developer');
+            $developer->gateway();
         }
     }
 

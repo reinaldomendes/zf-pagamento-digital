@@ -3,7 +3,7 @@
 namespace PagamentoDigital;
 
 class Order {
-
+    
     protected static $_EXTRAS_MAPPING = array(
         'nome' => "nome",
         'cpf' => "cpf",
@@ -27,6 +27,9 @@ class Order {
         'rg' => 'rg',
         'hash' => "hash",
     );
+    
+   
+    
     protected $_extras = array();
 
     public function setExtras($array = array()) {
@@ -79,6 +82,14 @@ class Order {
         $this->_products[] = $options;
         return $this;
     }
+    
+    public function products(){
+        return $this->getProducts();
+    }
+    public function getProducts(){
+        return $this->_products;
+    }
+    
     /**
      *
      * @param mixed $valor

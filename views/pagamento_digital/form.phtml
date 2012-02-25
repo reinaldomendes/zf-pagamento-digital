@@ -1,6 +1,5 @@
 <?php
 $hash_fields = array();
-
 $options['url_retorno'] = $options['url_retorno'] ? :
         ($this->config["return_to"] ? : null);
 if ($options['url_retorno']) {
@@ -42,26 +41,31 @@ $hash_fields += (array) $order->getExtrasMapped();
 
 $to_gen_md5 = $hash_fields;
 ksort($to_gen_md5);
-$to_gen_md5 = join('&', array_map(function($k, $v) {
-                    $v = urlencode($v);
-                    return "{$k}=$v";
-                }, $to_gen_md5));
-
+array_walk($to_gen_md5, function(&$v, $k) {
+            $v = urlencode($v);
+            $v = "{$k}=$v";
+        });
+$to_gen_md5 = join('&', $to_gen_md5);
 $hash_fields['hash'] = md5($to_gen_md5);
+
+$url = $this->config['developer'] ? $this->url(array(),array('name' => 'pagamento_digital/development')) : \PagamentoDigital\Base::GATEWAY_URL;
 ?>
 
-<form action="<?php echo $this->gateway_url ?>" method='post' style="display :none">
-    <?php
-    echo join('<br/>', array_map(function($k, $v) {
-                        $v = strtr($v, "'", "\\'");
-                        return "
+<form action="<?php echo $url; ?>" method='post' >
+    <span style="display :none">
+        <?php
+        array_walk($hash_fields, function(&$v, $k) {
+                    $v = strtr($v, "'", "\\'");
+                    $v = "
                             <label>
                             <input name='{$k}' value='{$v}' type='text'/>
                             {$k}
                             </label>
                             ";
-                    }, $hash_fields)
-    );
-    ?>
+                });
+
+        echo join('<br/>', $hash_fields);
+        ?>
+    </span>
     <button type="submit">Enviar</button>
 </form>
